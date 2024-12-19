@@ -1,0 +1,99 @@
+# Import libraries
+import pandas as pd
+import numpy as np
+from sklearn.model_selection import train_test_split
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.naive_bayes import MultinomialNB
+from sklearn.linear_model import LogisticRegression
+from sklearn.svm import SVC
+from sklearn.metrics import accuracy_score, classification_report
+
+# Step 1: Load the dataset
+def load_data(file_path):
+    """Load movie plot and genre dataset."""
+    data = pd.read_csv(file_path)
+    print("Dataset Loaded Successfully.")
+    print("Dataset Shape:", data.shape)
+    print(data.head())
+    return data
+
+# Step 2: Preprocess textual data
+def preprocess_data(data, text_column, target_column):
+    """Clean and split data into features and labels."""
+    X = data[text_column]  # Textual data: plot summaries
+    y = data[target_column]  # Target: movie genre
+    
+    # Train-test split
+    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, stratify=y)
+    return X_train, X_test, y_train, y_test
+
+# Step 3: Convert text data to TF-IDF features
+def vectorize_text(X_train, X_test):
+    """Vectorize text data using TF-IDF."""
+    tfidf = TfidfVectorizer(max_features=5000, stop_words='english')
+    X_train_tfidf = tfidf.fit_transform(X_train)
+    X_test_tfidf = tfidf.transform(X_test)
+    print("Text data vectorized successfully.")
+    return X_train_tfidf, X_test_tfidf, tfidf
+
+# Step 4: Train classifiers
+def train_classifiers(X_train, y_train):
+    """Train Naive Bayes, Logistic Regression, and SVM classifiers."""
+    models = {
+        'Naive Bayes': MultinomialNB(),
+        'Logistic Regression': LogisticRegression(max_iter=1000, random_state=42),
+        'SVM': SVC(kernel='linear', probability=True, random_state=42)
+    }
+    trained_models = {}
+    for name, model in models.items():
+        print(f"Training {name}...")
+        model.fit(X_train, y_train)
+        trained_models[name] = model
+    return trained_models
+
+# Step 5: Evaluate models
+def evaluate_models(models, X_test, y_test):
+    """Evaluate classifiers and print performance metrics."""
+    for name, model in models.items():
+        y_pred = model.predict(X_test)
+        print(f"\n--- {name} ---")
+        print("Accuracy:", accuracy_score(y_test, y_pred))
+        print("Classification Report:\n", classification_report(y_test, y_pred))
+
+# Step 6: Predict genre for new plot summaries
+def predict_genre(models, tfidf, new_plots):
+    """Predict movie genres for new plot summaries."""
+    new_plots_tfidf = tfidf.transform(new_plots)
+    print("\nPredictions for new movie plots:")
+    for name, model in models.items():
+        predictions = model.predict(new_plots_tfidf)
+        print(f"{name} Predictions: {predictions}")
+
+# Main function
+if _name_ == '_main_':
+    # Load dataset
+    file_path = 'movie_genre_dataset.csv'  # Replace with your dataset file path
+    data = load_data(file_path)
+    
+    # Define text and target columns
+    text_column = 'Plot'  # Column with plot summaries
+    target_column = 'Genre'  # Column with movie genres
+    
+    # Preprocess data
+    X_train, X_test, y_train, y_test = preprocess_data(data, text_column, target_column)
+    
+    # Vectorize text
+    X_train_tfidf, X_test_tfidf, tfidf = vectorize_text(X_train, X_test)
+    
+    # Train models
+    models = train_classifiers(X_train_tfidf, y_train)
+    
+    # Evaluate models
+    evaluate_models(models, X_test_tfidf, y_test)
+    
+    # Predict genre for new plot summaries
+    new_plots = [
+        "A group of friends go on an adventure to find hidden treasure in the forest.",
+        "A detective investigates a series of murders in a small town."
+    ]
+    predict_genre(models, tfidf, new_plots)
