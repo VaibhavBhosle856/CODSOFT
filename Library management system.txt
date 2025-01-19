@@ -1,0 +1,173 @@
+#include <iostream>
+#include <vector>
+#include <string>
+#include <ctime>
+#include <cmath>
+
+using namespace std;
+
+// Structure to store book details
+struct Book {
+    string title;
+    string author;
+    string ISBN;
+    bool isCheckedOut;
+    
+    Book(string t, string a, string i) : title(t), author(a), ISBN(i), isCheckedOut(false) {}
+};
+
+// Structure to store borrower details
+struct Borrower {
+    string name;
+    string borrowedISBN;
+    time_t checkoutDate;
+    
+    Borrower(string n, string isbn) : name(n), borrowedISBN(isbn) {
+        checkoutDate = time(0);  // current time
+    }
+};
+
+// Class to handle the library system
+class Library {
+private:
+    vector<Book> books;
+    vector<Borrower> borrowers;
+    
+public:
+    void addBook(string title, string author, string ISBN) {
+        books.push_back(Book(title, author, ISBN));
+        cout << "Book added: " << title << endl;
+    }
+    
+    void searchBook(string query) {
+        bool found = false;
+        for (const auto& book : books) {
+            if (book.title.find(query) != string::npos || book.author.find(query) != string::npos || book.ISBN.find(query) != string::npos) {
+                cout << "Found book: " << book.title << " by " << book.author << " (ISBN: " << book.ISBN << ")" << endl;
+                found = true;
+            }
+        }
+        if (!found) {
+            cout << "No book found matching your search!" << endl;
+        }
+    }
+    
+    void checkoutBook(string ISBN, string borrowerName) {
+        for (auto& book : books) {
+            if (book.ISBN == ISBN && !book.isCheckedOut) {
+                book.isCheckedOut = true;
+                borrowers.push_back(Borrower(borrowerName, ISBN));
+                cout << "Book checked out to " << borrowerName << " successfully." << endl;
+                return;
+            }
+        }
+        cout << "Book not available for checkout." << endl;
+    }
+    
+    void returnBook(string ISBN) {
+        for (auto& book : books) {
+            if (book.ISBN == ISBN && book.isCheckedOut) {
+                book.isCheckedOut = false;
+                for (auto& borrower : borrowers) {
+                    if (borrower.borrowedISBN == ISBN) {
+                        time_t currentTime = time(0);
+                        double secondsOverdue = difftime(currentTime, borrower.checkoutDate);
+                        double daysOverdue = secondsOverdue / (60 * 60 * 24);
+                        if (daysOverdue > 0) {
+                            double fine = daysOverdue * 0.5;  // Example fine: $0.5 per day
+                            cout << borrower.name << " owes a fine of $" << fine << " for " << daysOverdue << " days overdue." << endl;
+                        }
+                        borrowers.erase(remove(borrowers.begin(), borrowers.end(), borrower), borrowers.end());
+                        cout << "Book returned successfully." << endl;
+                        return;
+                    }
+                }
+            }
+        }
+        cout << "Book not found or not checked out." << endl;
+    }
+    
+    void displayBooks() {
+        cout << "\nLibrary Book List:" << endl;
+        for (const auto& book : books) {
+            cout << book.title << " by " << book.author << " (ISBN: " << book.ISBN << ")";
+            cout << (book.isCheckedOut ? " - Checked Out" : " - Available") << endl;
+        }
+    }
+};
+
+// Menu-driven interface
+void displayMenu() {
+    cout << "\nLibrary Management System" << endl;
+    cout << "=========================" << endl;
+    cout << "1. Add Book" << endl;
+    cout << "2. Search Book" << endl;
+    cout << "3. Checkout Book" << endl;
+    cout << "4. Return Book" << endl;
+    cout << "5. Display All Books" << endl;
+    cout << "6. Exit" << endl;
+    cout << "Enter your choice (1-6): ";
+}
+
+int main() {
+    Library library;
+    int choice;
+    string title, author, ISBN, borrowerName;
+    
+    while (true) {
+        displayMenu();
+        cin >> choice;
+        cin.ignore();  // To clear the newline character from the input buffer
+        
+        switch (choice) {
+            case 1:
+                // Add book
+                cout << "Enter book title: ";
+                getline(cin, title);
+                cout << "Enter author name: ";
+                getline(cin, author);
+                cout << "Enter ISBN: ";
+                getline(cin, ISBN);
+                library.addBook(title, author, ISBN);
+                break;
+                
+            case 2:
+                // Search book
+                cout << "Enter search query (title, author, or ISBN): ";
+                getline(cin, title);
+                library.searchBook(title);
+                break;
+                
+            case 3:
+                // Checkout book
+                cout << "Enter book ISBN to checkout: ";
+                getline(cin, ISBN);
+                cout << "Enter borrower's name: ";
+                getline(cin, borrowerName);
+                library.checkoutBook(ISBN, borrowerName);
+                break;
+                
+            case 4:
+                // Return book
+                cout << "Enter book ISBN to return: ";
+                getline(cin, ISBN);
+                library.returnBook(ISBN);
+                break;
+                
+            case 5:
+                // Display all books
+                library.displayBooks();
+                break;
+                
+            case 6:
+                // Exit
+                cout << "Exiting the system. Goodbye!" << endl;
+                return 0;
+                
+            default:
+                cout << "Invalid choice. Please try again." << endl;
+        }
+    }
+
+    return 0;
+}
